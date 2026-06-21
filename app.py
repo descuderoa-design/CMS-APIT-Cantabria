@@ -261,18 +261,11 @@ def modulo_recursos(dfs: dict, hoy: date):
 
     # Filtros
     municipios = ["Todos"] + sorted(recursos_df["municipio"].dropna().unique())
-    col_m, col_t = st.columns(2)
-    with col_m:
-        muni = st.selectbox("Municipio", municipios, key="rec_muni")
-    with col_t:
-        tipos = ["Todos"] + sorted(recursos_df["tipo"].dropna().unique())
-        tipo  = st.selectbox("Tipo", tipos, key="rec_tipo")
+    muni = st.selectbox("Municipio", municipios, key="rec_muni")
 
     df_fil = recursos_df[recursos_df["activo"] == True].copy()
     if muni != "Todos":
         df_fil = df_fil[df_fil["municipio"] == muni]
-    if tipo != "Todos":
-        df_fil = df_fil[df_fil["tipo"] == tipo]
 
     df_fil = df_fil.sort_values(["prioridad", "recurso"])
 
@@ -341,17 +334,11 @@ def modulo_restaurantes(dfs: dict):
 
     # Filtros
     municipios = ["Todos"] + sorted(rest_df["municipio"].dropna().unique())
-    col_m, col_g = st.columns(2)
-    with col_m:
-        muni = st.selectbox("Municipio", municipios, key="rest_muni")
-    with col_g:
-        solo_grupos = st.toggle("Solo admite grupos", value=False)
+    muni = st.selectbox("Municipio", municipios, key="rest_muni")
 
     df_fil = rest_df.copy()
     if muni != "Todos":
         df_fil = df_fil[df_fil["municipio"] == muni]
-    if solo_grupos:
-        df_fil = df_fil[df_fil["admite_grupos"].str.upper().isin(["SÍ", "SI", "YES", "TRUE", "S"])]
 
     df_fil = df_fil.sort_values("rating_medio", ascending=False, na_position="last")
 
