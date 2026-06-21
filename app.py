@@ -21,7 +21,7 @@ st.set_page_config(
 # GOOGLE SHEETS CSV URLS
 # Reemplaza los GID con los tuyos reales
 # ─────────────────────────────────────────────
-SHEET_ID = "TU_GOOGLE_SHEET_ID"
+SHEET_ID = "1J1T4vS736sotTVP9KgdSje0OxlBvFU_7alO4Mwap5YY"
 
 URLS = {
     "recursos":                  f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=recursos",
