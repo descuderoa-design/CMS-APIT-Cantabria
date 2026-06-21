@@ -73,6 +73,19 @@ def get_data() -> dict:
     except Exception:
         return load_local_data()
 
+# ─────────────────────────────────────────────
+# GMAIL LINK
+# ─────────────────────────────────────────────
+def gmail_link(asunto: str, cuerpo: str) -> str:
+    base = "https://mail.google.com/mail/?view=cm&fs=1"
+    cuerpo = cuerpo.replace("\n", "%0A")
+
+    return (
+        base +
+        f"&to={quote(EMAIL)}"
+        f"&su={quote(asunto)}"
+        f"&body={cuerpo}"
+    )
 
 # ─────────────────────────────────────────────
 # HELPERS FECHA
@@ -91,6 +104,7 @@ def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
             return False
     except Exception:
         pass
+
     dias_str = str(row.get("dias_semana", "") or "")
     if dias_str.strip():
         dia = DIAS_ES[fecha.weekday()]
@@ -109,413 +123,115 @@ def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFra
 def html(s: str) -> str:
     return textwrap.dedent(s).strip()
 
-
-def mailto(asunto: str, cuerpo: str) -> str:
-    return f"mailto:{EMAIL}?subject={quote(asunto)}&body={quote(cuerpo)}"
-
-
 # ─────────────────────────────────────────────
-# ESTILOS
+# CSS
 # ─────────────────────────────────────────────
 def inject_css():
     st.markdown(html("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .block-container { max-width: 680px; padding: 1rem 1rem 4rem; }
-    .section-header {
-        background: linear-gradient(135deg, #1a4a6b 0%, #0d7c9e 100%);
-        color: white; padding: 0.75rem 1.1rem; border-radius: 10px;
-        margin-bottom: 1rem; font-weight: 600; font-size: 1.05rem; letter-spacing: 0.02em;
-    }
-    .card {
-        background: #ffffff; border: 1px solid #e5e9ef; border-radius: 12px;
-        padding: 1rem 1.1rem; margin-bottom: 0.85rem; box-shadow: 0 1px 4px rgba(0,0,0,.06);
-    }
-    .card-title { font-weight: 700; font-size: 1rem; color: #1a2e40; margin-bottom: 0.25rem; }
-    .card-meta { font-size: 0.78rem; color: #6b7a8d; margin-bottom: 0.5rem; }
-    .bloque {
-        background: #f4f8fc; border-left: 3px solid #0d7c9e;
-        border-radius: 0 8px 8px 0; padding: 0.55rem 0.8rem; margin-bottom: 0.45rem;
-    }
-    .bloque-label {
-        font-size: 0.7rem; font-weight: 600; color: #0d7c9e;
-        text-transform: uppercase; letter-spacing: 0.06em;
-    }
-    .bloque-subtipo { font-weight: 600; color: #1a2e40; font-size: 0.87rem; }
-    .bloque-contenido { color: #374151; font-size: 0.87rem; }
-    .disclaimer {
-        background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
-        padding: 0.55rem 0.8rem; margin-top: 0.6rem; margin-bottom: 0;
-        font-size: 0.78rem; color: #78350f; line-height: 1.5;
-    }
-    .disclaimer strong { color: #92400e; }
-    .stars { color: #f59e0b; font-size: 1rem; }
-    .rating-num { font-weight: 700; color: #1a2e40; font-size: 0.9rem; }
-    .badge {
-        display: inline-block; background: #e0f2fe; color: #0369a1;
-        border-radius: 20px; padding: 0.15rem 0.65rem;
-        font-size: 0.72rem; font-weight: 600; margin-right: 0.3rem; margin-bottom: 0.2rem;
-    }
-    .badge-green { background: #dcfce7; color: #15803d; }
-    .badge-amber { background: #fef9c3; color: #92400e; }
-    .stTabs [data-baseweb="tab-list"] { gap: 0.5rem; }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0; padding: 0.45rem 1.1rem;
-        font-weight: 600; font-size: 0.88rem;
-    }
-    label { font-weight: 600 !important; font-size: 0.83rem !important; color: #374151 !important; }
-    a { color: #0d7c9e !important; }
-    .no-results { text-align: center; color: #9ca3af; padding: 2rem 1rem; font-size: 0.9rem; }
-    .report-btn {
-        display: inline-block; font-size: 0.75rem; color: #6b7a8d !important;
-        text-decoration: none; margin-right: 0.75rem;
-        border-bottom: 1px dashed #d1d5db; padding-bottom: 1px;
-    }
-    .report-btn:hover { color: #0d7c9e !important; border-bottom-color: #0d7c9e; }
-    .report-row { margin-top: 0.65rem; padding-top: 0.55rem; border-top: 1px solid #f3f4f6; }
+    .section-header { background: linear-gradient(135deg,#1a4a6b,#0d7c9e);
+        color:white;padding:0.75rem 1rem;border-radius:10px;margin-bottom:1rem;}
+    .card { background:#fff;border:1px solid #e5e9ef;border-radius:12px;
+        padding:1rem;margin-bottom:0.85rem;}
+    .card-title { font-weight:700; }
+    .badge { background:#e0f2fe;padding:0.15rem 0.6rem;border-radius:20px;font-size:0.7rem;}
+    .report-btn { font-size:0.75rem;color:#0d7c9e;text-decoration:none;margin-right:0.6rem;}
+    .report-row { margin-top:0.5rem;border-top:1px solid #eee;padding-top:0.5rem;}
+    .disclaimer { font-size:0.75rem;color:#78350f;background:#fffbeb;padding:0.5rem;border-radius:8px;}
     </style>
     """), unsafe_allow_html=True)
 
-
 # ─────────────────────────────────────────────
-# HELPERS HTML
+# REPORT EMAILS
 # ─────────────────────────────────────────────
-def build_bloque(bloque_tipo, subtipo, contenido, fuente):
-    fuente_html = f'<br><small style="color:#9ca3af">Fuente: {fuente}</small>' if fuente else ""
-    return (
-        '<div class="bloque">'
-        f'<div class="bloque-label">{bloque_tipo}</div>'
-        f'<div class="bloque-subtipo">{subtipo}</div>'
-        f'<div class="bloque-contenido">{contenido}{fuente_html}</div>'
-        '</div>'
-    )
-
-
-def build_resena(r_stars, guia, fecha_str, n_p, comentario):
-    return (
-        '<div style="border-top:1px solid #e5e9ef;padding-top:0.5rem;margin-top:0.5rem;">'
-        f'<div style="font-size:0.78rem;color:#6b7a8d;">{r_stars} · {guia} · {fecha_str} · {n_p} pax</div>'
-        f'<div style="font-size:0.85rem;color:#374151;margin-top:0.2rem;">{comentario}</div>'
-        '</div>'
-    )
-
-
-def build_disclaimer(web, ultima_act):
-    """Franja de aviso + enlace web + fecha de actualización."""
-    web_link = f' · <a href="{web}" target="_blank" style="color:#92400e;font-weight:600;">🔗 Web oficial</a>' if web else ""
-    if pd.notna(ultima_act) and ultima_act:
-        try:
-            fecha_act = pd.to_datetime(ultima_act).strftime("%d/%m/%Y")
-            act_str = f' · <span>Última actualización: <strong>{fecha_act}</strong></span>'
-        except Exception:
-            act_str = ""
-    else:
-        act_str = ""
-    return (
-        '<div class="disclaimer">'
-        '⚠️ <strong>Aviso:</strong> Esta información puede estar desactualizada. '
-        'Contrástala con la fuente oficial antes de usarla.'
-        f'{web_link}{act_str}'
-        '</div>'
-    )
-
-
 def build_report_links_recurso(nombre):
-    """Dos enlaces mailto para reportar errores o solicitar añadir recurso."""
-    asunto_error  = f"[CMS Cantabria] Corrección de datos: {nombre}"
-    cuerpo_error  = (
-        f"Hola,\n\nHe detectado un dato incorrecto o incompleto en el recurso «{nombre}».\n\n"
-        "Descripción del error:\n[Describe aquí qué dato es incorrecto y cuál debería ser el valor correcto]\n\n"
-        "Fuente de referencia (opcional):\n[URL o documento donde has contrastado el dato]\n\n"
-        "Gracias."
-    )
-    asunto_nuevo  = "[CMS Cantabria] Nuevo recurso turístico"
-    cuerpo_nuevo  = (
-        "Hola,\n\nQuiero proponer la incorporación de un nuevo recurso turístico.\n\n"
-        "Nombre del recurso:\nMunicipio:\nTipo (museo, iglesia, cueva, playa…):\nWeb oficial:\n"
-        "Descripción breve:\n\nGracias."
-    )
-    return (
-        '<div class="report-row">'
-        f'<a class="report-btn" href="{mailto(asunto_error, cuerpo_error)}">✏️ Reportar dato incorrecto</a>'
-        f'<a class="report-btn" href="{mailto(asunto_nuevo, cuerpo_nuevo)}">➕ Proponer nuevo recurso</a>'
-        '</div>'
-    )
+    asunto_error = f"[CMS Cantabria] Corrección de datos: {nombre}"
+    cuerpo_error = f"""Hola,
+
+He detectado un dato incorrecto en el recurso «{nombre}».
+
+Descripción del error:
+[...]
+
+Gracias."""
+    
+    asunto_nuevo = "[CMS Cantabria] Nuevo recurso turístico"
+    cuerpo_nuevo = """Hola,
+
+Quiero proponer un nuevo recurso turístico.
+
+Nombre:
+Municipio:
+Tipo:
+Web:
+Descripción:
+
+Gracias."""
+
+    return f"""
+    <div class="report-row">
+        <a class="report-btn" href="{gmail_link(asunto_error, cuerpo_error)}">✏️ Corregir datos</a>
+        <a class="report-btn" href="{gmail_link(asunto_nuevo, cuerpo_nuevo)}">➕ Nuevo recurso</a>
+    </div>
+    """
 
 
 def build_report_links_restaurante(nombre):
-    """Enlace mailto para reportar dato incorrecto en un restaurante."""
-    asunto = f"[CMS Cantabria] Corrección de datos: restaurante {nombre}"
-    cuerpo = (
-        f"Hola,\n\nHe detectado un dato incorrecto en el restaurante «{nombre}».\n\n"
-        "Descripción del error:\n[Describe aquí qué dato es incorrecto y cuál es el valor correcto]\n\n"
-        "Fuente de referencia (opcional):\n[URL o documento]\n\nGracias."
-    )
-    return (
-        '<div class="report-row">'
-        f'<a class="report-btn" href="{mailto(asunto, cuerpo)}">✏️ Reportar dato incorrecto</a>'
-        '</div>'
-    )
+    asunto = f"[CMS Cantabria] Corrección restaurante: {nombre}"
+    cuerpo = f"""Hola,
 
+He detectado un error en el restaurante «{nombre}».
 
-# ─────────────────────────────────────────────
-# MÓDULO RECURSOS
-# ─────────────────────────────────────────────
-def modulo_recursos(dfs: dict):
-    recursos_df   = dfs["recursos"]
-    contenidos_df = dfs["contenidos_recursos"]
+Descripción del error:
+[...]
 
-    hoy       = date.today()
-    fecha_max = date(hoy.year + 2, hoy.month, hoy.day)
+Gracias."""
 
-    col_fecha, col_muni = st.columns([1, 1])
-    with col_fecha:
-        fecha_sel = st.date_input(
-            "📅 Consultar fecha",
-            value=hoy,
-            min_value=hoy,
-            max_value=fecha_max,
-            format="DD/MM/YYYY",
-            key="rec_fecha",
-        )
-        dia_label = DIAS_ES[fecha_sel.weekday()].capitalize()
-        st.markdown(
-            f'<small style="color:#6b7a8d">{dia_label}, {fecha_sel.strftime("%d/%m/%Y")}</small>',
-            unsafe_allow_html=True,
-        )
-    with col_muni:
-        municipios = ["Todos"] + sorted(recursos_df["municipio"].dropna().unique())
-        muni = st.selectbox("Municipio", municipios, key="rec_muni")
-
-    df_fil = recursos_df[recursos_df["activo"] == True].copy()
-    if muni != "Todos":
-        df_fil = df_fil[df_fil["municipio"] == muni]
-    df_fil = df_fil.sort_values(["prioridad", "recurso"])
-
-    if df_fil.empty:
-        st.markdown('<div class="no-results">No hay recursos para los filtros seleccionados.</div>', unsafe_allow_html=True)
-        return
-
-    # Enlace global "proponer nuevo recurso" antes de las cards
-    asunto_nuevo = "[CMS Cantabria] Nuevo recurso turístico"
-    cuerpo_nuevo = (
-        "Hola,\n\nQuiero proponer la incorporación de un nuevo recurso turístico.\n\n"
-        "Nombre del recurso:\nMunicipio:\nTipo (museo, iglesia, cueva, playa…):\nWeb oficial:\n"
-        "Descripción breve:\n\nGracias."
-    )
-    st.markdown(
-        f'<div style="margin-bottom:0.75rem;font-size:0.8rem;">'
-        f'¿Falta algún recurso? '
-        f'<a href="{mailto(asunto_nuevo, cuerpo_nuevo)}" style="color:#0d7c9e;font-weight:600;">'
-        f'➕ Proponer nuevo recurso turístico</a></div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(f"**{len(df_fil)} recurso(s) encontrado(s)**")
-
-    for _, rec in df_fil.iterrows():
-        nombre      = rec["recurso"]
-        municipio   = rec.get("municipio", "")
-        tipo_rec    = rec.get("tipo", "")
-        web         = rec.get("web_oficial", "")
-        ultima_act  = rec.get("ultima_actualizacion", None)
-
-        contenido_fecha = filtrar_contenido(contenidos_df, nombre, fecha_sel)
-
-        if not contenido_fecha.empty:
-            bloques_html = ""
-            for bloque_tipo, grupo in contenido_fecha.groupby("bloque"):
-                for _, fila in grupo.iterrows():
-                    bloques_html += build_bloque(
-                        bloque_tipo,
-                        fila.get("subtipo", "") or "",
-                        fila.get("contenido", "") or "",
-                        fila.get("fuente", "") or "",
-                    )
-        else:
-            bloques_html = '<small style="color:#9ca3af">Sin datos disponibles para la fecha seleccionada.</small>'
-
-        web_str = str(web) if pd.notna(web) else ""
-
-        card = (
-            '<div class="card">'
-            f'<div class="card-title">🏛️ {nombre}</div>'
-            '<div class="card-meta">'
-            f'<span class="badge">{municipio}</span>'
-            f'<span class="badge badge-amber">{tipo_rec}</span>'
-            '</div>'
-            f'{bloques_html}'
-            f'{build_disclaimer(web_str, ultima_act)}'
-            f'{build_report_links_recurso(nombre)}'
-            '</div>'
-        )
-        st.markdown(card, unsafe_allow_html=True)
-
+    return f"""
+    <div class="report-row">
+        <a class="report-btn" href="{gmail_link(asunto, cuerpo)}">✏️ Corregir datos</a>
+    </div>
+    """
 
 # ─────────────────────────────────────────────
-# MÓDULO RESTAURANTES
-# ─────────────────────────────────────────────
-def panel_nuevo_restaurante():
-    """Expander con enlace mailto para proponer nuevo restaurante + primera reseña."""
-    asunto = "[CMS Cantabria] Nuevo restaurante"
-    cuerpo = (
-        "Hola,\n\nQuiero proponer la incorporación de un nuevo restaurante.\n\n"
-        "── DATOS DEL RESTAURANTE ──────────────────\n"
-        "Nombre:\nMunicipio:\nAdmite grupos (Sí/No):\nPrecio menú grupos (€/persona):\n\n"
-        "── PRIMERA RESEÑA (opcional) ───────────────\n"
-        "Fecha de la visita (dd/mm/aaaa):\n"
-        "Nombre del guía:\n"
-        "Número de personas:\n"
-        "Precio por persona (€):\n"
-        "Valoración (1-5 estrellas):\n"
-        "Comentario:\n\n"
-        "Gracias."
-    )
-    with st.expander("➕ Proponer nuevo restaurante", expanded=False):
-        st.markdown(
-            '<p style="font-size:0.85rem;color:#374151;margin-bottom:0.6rem;">'
-            '¿Conoces un restaurante que debería estar en esta lista? '
-            'Envíanos los datos y, si quieres, añade también tu primera reseña. '
-            'Revisaremos la propuesta y la incorporaremos a la base de datos.</p>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f'<a href="{mailto(asunto, cuerpo)}" style="display:inline-block;'
-            'background:#0d7c9e;color:white!important;padding:0.45rem 1.1rem;'
-            'border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;">'
-            '📧 Abrir correo de propuesta</a>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f'<p style="font-size:0.72rem;color:#9ca3af;margin-top:0.5rem;">'
-            f'Se abrirá tu cliente de correo con destinatario y plantilla ya preparados ({EMAIL}).</p>',
-            unsafe_allow_html=True,
-        )
-
-
-def modulo_restaurantes(dfs: dict):
-    rest_df = dfs["restaurantes"]
-    exp_df  = dfs["experiencias_restaurantes"]
-
-    rating_medio = (
-        exp_df.groupby("restaurante")["rating"]
-        .agg(rating_medio="mean", n_resenas="count")
-        .reset_index()
-    )
-    rest_df = rest_df.merge(rating_medio, on="restaurante", how="left")
-
-    municipios = ["Todos"] + sorted(rest_df["municipio"].dropna().unique())
-    muni = st.selectbox("Municipio", municipios, key="rest_muni")
-
-    df_fil = rest_df.copy()
-    if muni != "Todos":
-        df_fil = df_fil[df_fil["municipio"] == muni]
-    df_fil = df_fil.sort_values("rating_medio", ascending=False, na_position="last")
-
-    if df_fil.empty:
-        st.markdown('<div class="no-results">No hay restaurantes para los filtros seleccionados.</div>', unsafe_allow_html=True)
-        panel_nuevo_restaurante()
-        return
-
-    st.markdown(f"**{len(df_fil)} restaurante(s) encontrado(s)**")
-
-    for _, row in df_fil.iterrows():
-        nombre    = row["restaurante"]
-        municipio = row.get("municipio", "")
-        grupos    = row.get("admite_grupos", "")
-        precio    = row.get("precio_menu_grupos", None)
-        rating    = row.get("rating_medio", None)
-        n_res     = int(row.get("n_resenas", 0)) if pd.notna(row.get("n_resenas")) else 0
-
-        if pd.notna(rating):
-            estrellas   = int(round(rating))
-            stars_str   = "⭐" * estrellas + "☆" * (5 - estrellas)
-            sufijo      = "s" if n_res != 1 else ""
-            rating_html = (
-                f'<span class="stars">{stars_str}</span>'
-                f'<span class="rating-num"> {rating:.1f}/5</span>'
-                f'<small style="color:#9ca3af"> ({n_res} reseña{sufijo})</small>'
-            )
-        else:
-            rating_html = '<small style="color:#9ca3af">Sin reseñas aún</small>'
-
-        precio_html  = f'<span class="badge badge-green">Menú grupo: {int(precio)}€/p.</span>' if pd.notna(precio) else ""
-        grupos_badge = '<span class="badge badge-green">✓ Grupos</span>' if str(grupos).upper() in ["SÍ", "SI", "YES"] else ""
-
-        resenas = exp_df[exp_df["restaurante"] == nombre].sort_values("fecha", ascending=False)
-        resenas_html = ""
-        for _, res in resenas.head(3).iterrows():
-            fecha_str = pd.to_datetime(res["fecha"]).strftime("%d/%m/%Y") if pd.notna(res.get("fecha")) else ""
-            r_stars   = "⭐" * int(res.get("rating", 0))
-            resenas_html += build_resena(
-                r_stars,
-                res.get("guia", ""),
-                fecha_str,
-                res.get("num_personas", ""),
-                res.get("comentario", ""),
-            )
-
-        sin_resenas = '<small style="color:#9ca3af">Sin reseñas registradas.</small>'
-
-        card = (
-            '<div class="card">'
-            f'<div class="card-title">🍽️ {nombre}</div>'
-            '<div class="card-meta">'
-            f'<span class="badge">{municipio}</span>'
-            f'{grupos_badge}{precio_html}'
-            '</div>'
-            f'<div style="margin-bottom:0.5rem;">{rating_html}</div>'
-            f'{resenas_html if resenas_html else sin_resenas}'
-            f'{build_report_links_restaurante(nombre)}'
-            '</div>'
-        )
-        st.markdown(card, unsafe_allow_html=True)
-
-    st.markdown('<div style="margin-top:0.5rem;"></div>', unsafe_allow_html=True)
-    panel_nuevo_restaurante()
-
-
-# ─────────────────────────────────────────────
-# APP PRINCIPAL
+# MAIN
 # ─────────────────────────────────────────────
 def main():
     inject_css()
 
-    st.markdown(html("""
-    <div style="text-align:center;padding:1.2rem 0 0.5rem;">
-    <div style="font-size:2rem;">🏔️</div>
-    <div style="font-weight:700;font-size:1.35rem;color:#1a2e40;letter-spacing:-0.01em;">CMS Cantabria</div>
-    <div style="color:#6b7a8d;font-size:0.82rem;margin-top:0.2rem;">Panel de Guías Turísticos</div>
-    </div>
-    """), unsafe_allow_html=True)
+    st.title("🏔️ CMS Cantabria")
 
-    with st.spinner("Cargando datos…"):
-        dfs = get_data()
+    dfs = get_data()
 
-    col_ref, _ = st.columns([1, 3])
-    with col_ref:
-        if st.button("🔄 Actualizar datos"):
-            st.cache_data.clear()
-            st.rerun()
+    tab_rec, tab_rest = st.tabs(["Recursos", "Restaurantes"])
 
-    st.divider()
-
-    tab_rec, tab_rest = st.tabs(["🏛️ Recursos", "🍽️ Restaurantes"])
-
+    # ───── RECURSOS
     with tab_rec:
-        st.markdown('<div class="section-header">🏛️ Recursos Turísticos</div>', unsafe_allow_html=True)
-        modulo_recursos(dfs)
+        st.markdown('<div class="section-header">Recursos turísticos</div>', unsafe_allow_html=True)
 
+        for _, r in dfs["recursos"].iterrows():
+            st.markdown(f"""
+            <div class="card">
+                <div class="card-title">{r['recurso']}</div>
+                <div class="badge">{r.get('municipio','')}</div>
+                {build_report_links_recurso(r['recurso'])}
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ───── RESTAURANTES
     with tab_rest:
-        st.markdown('<div class="section-header">🍽️ Restaurantes</div>', unsafe_allow_html=True)
-        modulo_restaurantes(dfs)
+        st.markdown('<div class="section-header">Restaurantes</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        '<div style="text-align:center;color:#9ca3af;font-size:0.72rem;margin-top:2rem;padding-bottom:1rem;">'
-        'CMS Cantabria · Datos actualizados desde Google Sheets'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+        for _, r in dfs["restaurantes"].iterrows():
+            st.markdown(f"""
+            <div class="card">
+                <div class="card-title">🍽️ {r['restaurante']}</div>
+                <div class="badge">{r.get('municipio','')}</div>
+                {build_report_links_restaurante(r['restaurante'])}
+            </div>
+            """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
