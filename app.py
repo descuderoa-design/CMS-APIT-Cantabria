@@ -189,28 +189,31 @@ def build_bloque(bloque_tipo, subtipo, contenido, fuente):
     )
 
 
-def modulo_recursos(dfs: dict, hoy: date):
+def modulo_recursos(dfs: dict):
     recursos_df   = dfs["recursos"]
     contenidos_df = dfs["contenidos_recursos"]
 
-    temp = temporada_actual(hoy)
-    temp_label = {"alta": "🌞 Temporada Alta", "media": "🍂 Temporada Media", "baja": "❄️ Temporada Baja"}[temp]
-    dia_label  = DIAS_ES[hoy.weekday()].capitalize()
+    hoy = date.today()
+    fecha_max = date(hoy.year + 2, hoy.month, hoy.day)
 
-    col1, col2 = st.columns(2)
-    with col1:
+    col_fecha, col_muni = st.columns([1, 1])
+    with col_fecha:
+        fecha_sel = st.date_input(
+            "\U0001f4c5 Consultar fecha",
+            value=hoy,
+            min_value=hoy,
+            max_value=fecha_max,
+            format="DD/MM/YYYY",
+            key="rec_fecha",
+        )
+        dia_label = DIAS_ES[fecha_sel.weekday()].capitalize()
         st.markdown(
-            f'<span class="temporada-badge temporada-{temp}">{temp_label}</span>',
+            f'<small style="color:#6b7a8d">{dia_label}, {fecha_sel.strftime("%d/%m/%Y")}</small>',
             unsafe_allow_html=True,
         )
-    with col2:
-        st.markdown(
-            f'<span class="temporada-badge temporada-media">📅 {dia_label}, {hoy.strftime("%d/%m/%Y")}</span>',
-            unsafe_allow_html=True,
-        )
-
-    municipios = ["Todos"] + sorted(recursos_df["municipio"].dropna().unique())
-    muni = st.selectbox("Municipio", municipios, key="rec_muni")
+    with col_muni:
+        municipios = ["Todos"] + sorted(recursos_df["municipio"].dropna().unique())
+        muni = st.selectbox("Municipio", municipios, key="rec_muni")
 
     df_fil = recursos_df[recursos_df["activo"] == True].copy()
     if muni != "Todos":
@@ -229,7 +232,7 @@ def modulo_recursos(dfs: dict, hoy: date):
         tipo_rec  = rec.get("tipo", "")
         web       = rec.get("web_oficial", "")
 
-        contenido_hoy = filtrar_contenido(contenidos_df, nombre, hoy)
+        contenido_hoy = filtrar_contenido(contenidos_df, nombre, fecha_sel)
 
         if not contenido_hoy.empty:
             bloques_html = ""
@@ -366,8 +369,6 @@ def main():
     with st.spinner("Cargando datos…"):
         dfs = get_data()
 
-    hoy = date.today()
-
     col_ref, _ = st.columns([1, 3])
     with col_ref:
         if st.button("🔄 Actualizar datos"):
@@ -380,7 +381,7 @@ def main():
 
     with tab_rec:
         st.markdown('<div class="section-header">🏛️ Recursos Turísticos</div>', unsafe_allow_html=True)
-        modulo_recursos(dfs, hoy)
+        modulo_recursos(dfs)
 
     with tab_rest:
         st.markdown('<div class="section-header">🍽️ Restaurantes</div>', unsafe_allow_html=True)
