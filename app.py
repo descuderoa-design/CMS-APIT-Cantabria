@@ -9,6 +9,7 @@ import pandas as pd
 from datetime import date
 import textwrap
 import requests
+import re
 
 # ─────────────────────────────────────────────
 # CONFIG
@@ -55,7 +56,7 @@ def post_to_apps_script(payload: dict):
 def save_incidencia(data: dict):
     payload = {
         "accion": "incidencia",
-        "usuario_nombre": st.session_state.get("guia", ""),
+        "usuario_nombre": data["usuario_nombre"],
         "tipo": data["tipo"],
         "categoria": data["categoria"],
         "nombre": data["nombre"],
@@ -72,7 +73,7 @@ def save_resena_restaurante(data: dict):
         "accion": "nueva_resena_restaurante",
         "restaurante": data["restaurante"],
         "fecha": data["fecha"],
-        "guia": st.session_state.get("guia", ""),
+        "guia": data["guia"],
         "num_personas": data["num_personas"],
         "precio_por_persona": data["precio_por_persona"],
         "rating": data["rating"],
@@ -117,6 +118,12 @@ def html(s: str) -> str:
     return textwrap.dedent(s).strip()
 
 
+def safe_key(texto: str) -> str:
+    texto = str(texto).lower().strip()
+    texto = re.sub(r"[^a-z0-9áéíóúñü]+", "_", texto)
+    return texto.strip("_")
+
+
 def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
     try:
         inicio = (
@@ -149,6 +156,9 @@ def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
 
 
 def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFrame:
+    if "recurso" not in df.columns:
+        return pd.DataFrame()
+
     sub = df[df["recurso"] == recurso].copy()
 
     if sub.empty:
@@ -318,41 +328,32 @@ def build_resena(r_stars, guia, fecha_str, n_p, comentario):
 
 
 # ─────────────────────────────────────────────
-# IDENTIFICACIÓN SIMPLE
-# ─────────────────────────────────────────────
-
-def pedir_nombre_guia():
-    if "guia" not in st.session_state:
-        st.session_state.guia = ""
-
-    st.session_state.guia = st.text_input(
-        "Nombre del guía",
-        value=st.session_state.guia,
-        placeholder="Nombre y apellidos"
-    )
-
-    if not st.session_state.guia.strip():
-        st.info("Indica tu nombre para poder enviar incidencias, propuestas o reseñas.")
-
-
-# ─────────────────────────────────────────────
 # FORMULARIOS
 # ─────────────────────────────────────────────
 
 def formulario_incidencia(tipo, categoria, nombre, municipio=""):
+    form_key = f"form_incidencia_{safe_key(tipo)}_{safe_key(categoria)}_{safe_key(nombre)}"
+
     with st.expander("Reportar dato incorrecto", expanded=False):
-        with st.form(f"form_{tipo}_{categoria}_{nombre}"):
+        with st.form(form_key):
+
+            guia = st.text_input(
+                "Nombre del guía",
+                placeholder="Nombre y apellidos",
+                key=f"guia_{form_key}"
+            )
 
             descripcion = st.text_area(
                 "¿Qué dato es incorrecto o falta?",
-                placeholder="Ejemplo: el horario ha cambiado, el precio ya no es correcto o falta indicar el cierre semanal."
+                placeholder="Ejemplo: el horario ha cambiado, el precio ya no es correcto o falta indicar el cierre semanal.",
+                key=f"descripcion_{form_key}"
             )
 
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
-                if not st.session_state.get("guia", "").strip():
-                    st.warning("Indica primero tu nombre.")
+                if not guia.strip():
+                    st.warning("Indica tu nombre.")
                     return
 
                 if not descripcion.strip():
@@ -361,6 +362,7 @@ def formulario_incidencia(tipo, categoria, nombre, municipio=""):
 
                 try:
                     save_incidencia({
+                        "usuario_nombre": guia,
                         "tipo": tipo,
                         "categoria": categoria,
                         "nombre": nombre,
@@ -379,8 +381,10 @@ def formulario_nuevo_recurso():
     with st.expander("Proponer nuevo recurso turístico", expanded=False):
         with st.form("form_nuevo_recurso"):
 
+            guia = st.text_input("Nombre del guía", placeholder="Nombre y apellidos")
             nombre = st.text_input("Nombre del recurso")
             municipio = st.text_input("Municipio")
+
             descripcion = st.text_area(
                 "Información básica",
                 placeholder="Indica por qué debe añadirse, web oficial si la conoces, horarios o cualquier dato útil."
@@ -389,8 +393,8 @@ def formulario_nuevo_recurso():
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
-                if not st.session_state.get("guia", "").strip():
-                    st.warning("Indica primero tu nombre.")
+                if not guia.strip():
+                    st.warning("Indica tu nombre.")
                     return
 
                 if not nombre.strip():
@@ -399,6 +403,7 @@ def formulario_nuevo_recurso():
 
                 try:
                     save_incidencia({
+                        "usuario_nombre": guia,
                         "tipo": "recurso",
                         "categoria": "nuevo",
                         "nombre": nombre,
@@ -417,8 +422,10 @@ def formulario_nuevo_restaurante():
     with st.expander("Proponer nuevo restaurante", expanded=False):
         with st.form("form_nuevo_restaurante"):
 
+            guia = st.text_input("Nombre del guía", placeholder="Nombre y apellidos")
             nombre = st.text_input("Nombre del restaurante")
             municipio = st.text_input("Municipio")
+
             descripcion = st.text_area(
                 "Información básica",
                 placeholder="Indica si admite grupos, precio aproximado, experiencia con grupos o cualquier dato útil."
@@ -427,8 +434,8 @@ def formulario_nuevo_restaurante():
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
-                if not st.session_state.get("guia", "").strip():
-                    st.warning("Indica primero tu nombre.")
+                if not guia.strip():
+                    st.warning("Indica tu nombre.")
                     return
 
                 if not nombre.strip():
@@ -437,6 +444,7 @@ def formulario_nuevo_restaurante():
 
                 try:
                     save_incidencia({
+                        "usuario_nombre": guia,
                         "tipo": "restaurante",
                         "categoria": "nuevo",
                         "nombre": nombre,
@@ -452,43 +460,56 @@ def formulario_nuevo_restaurante():
 
 
 def formulario_nueva_resena_restaurante(nombre, municipio=""):
+    form_key = f"form_resena_{safe_key(nombre)}"
+
     with st.expander("Añadir reseña", expanded=False):
-        with st.form(f"form_resena_{nombre}"):
+        with st.form(form_key):
+
+            guia = st.text_input(
+                "Nombre del guía",
+                placeholder="Nombre y apellidos",
+                key=f"guia_{form_key}"
+            )
 
             fecha_visita = st.date_input(
                 "Fecha",
                 value=date.today(),
-                format="DD/MM/YYYY"
+                format="DD/MM/YYYY",
+                key=f"fecha_{form_key}"
             )
 
             n_personas = st.number_input(
                 "Personas",
                 min_value=1,
-                step=1
+                step=1,
+                key=f"personas_{form_key}"
             )
 
             precio = st.text_input(
                 "Precio por persona",
-                placeholder="Ejemplo: 22"
+                placeholder="Ejemplo: 22",
+                key=f"precio_{form_key}"
             )
 
             rating = st.slider(
                 "Valoración",
                 min_value=1,
                 max_value=5,
-                value=4
+                value=4,
+                key=f"rating_{form_key}"
             )
 
             comentario = st.text_area(
                 "Comentario",
-                placeholder="Breve valoración de la experiencia."
+                placeholder="Breve valoración de la experiencia.",
+                key=f"comentario_{form_key}"
             )
 
             enviar = st.form_submit_button("Guardar reseña")
 
             if enviar:
-                if not st.session_state.get("guia", "").strip():
-                    st.warning("Indica primero tu nombre.")
+                if not guia.strip():
+                    st.warning("Indica tu nombre.")
                     return
 
                 if not comentario.strip():
@@ -499,6 +520,7 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                     save_resena_restaurante({
                         "restaurante": nombre,
                         "fecha": fecha_visita.strftime("%d/%m/%Y"),
+                        "guia": guia,
                         "num_personas": int(n_personas),
                         "precio_por_persona": precio,
                         "rating": int(rating),
@@ -572,7 +594,7 @@ def modulo_recursos(dfs):
 
         contenido_fecha = filtrar_contenido(contenidos_df, nombre, fecha_sel)
 
-        if not contenido_fecha.empty:
+        if not contenido_fecha.empty and "bloque" in contenido_fecha.columns:
             bloques_html = ""
 
             for bloque_tipo, grupo in contenido_fecha.groupby("bloque"):
@@ -760,8 +782,6 @@ def main():
         </div>
     </div>
     """), unsafe_allow_html=True)
-
-    pedir_nombre_guia()
 
     try:
         with st.spinner("Cargando datos…"):
