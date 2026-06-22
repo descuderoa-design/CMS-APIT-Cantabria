@@ -1,5 +1,5 @@
 """
-CMS Turístico de Cantabria
+CMS APIT Cantabria
 Guías turísticos · Recursos y Restaurantes
 """
 
