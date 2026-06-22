@@ -13,7 +13,7 @@ from urllib.parse import quote
 # CONFIG
 # ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="CMS Cantabria",
+    page_title="CMS APIT Cantabria",
     page_icon="🏔️",
     layout="centered",
     initial_sidebar_state="collapsed",
