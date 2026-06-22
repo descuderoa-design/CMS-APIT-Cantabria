@@ -1,5 +1,5 @@
-streamlit[auth]
+streamlit
+authlib
 pandas
 requests
 openpyxl
-authlib
