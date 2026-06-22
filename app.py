@@ -125,27 +125,30 @@ def safe_key(texto: str) -> str:
 
 
 def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
-    try:
-        inicio = (
-            pd.to_datetime(row.get("fecha_inicio")).date()
-            if pd.notna(row.get("fecha_inicio"))
-            else date.min
-        )
-        fin = (
-            pd.to_datetime(row.get("fecha_fin")).date()
-            if pd.notna(row.get("fecha_fin"))
-            else date.max
-        )
+    inicio_raw = row.get("fecha_inicio")
+    fin_raw = row.get("fecha_fin")
 
-        if not (inicio <= fecha <= fin):
-            return False
+    inicio = pd.to_datetime(
+        inicio_raw,
+        dayfirst=True,
+        errors="coerce"
+    )
 
-    except Exception:
-        pass
+    fin = pd.to_datetime(
+        fin_raw,
+        dayfirst=True,
+        errors="coerce"
+    )
 
-    dias_str = str(row.get("dias_semana", "") or "")
+    if pd.notna(inicio) and fecha < inicio.date():
+        return False
 
-    if dias_str.strip():
+    if pd.notna(fin) and fecha > fin.date():
+        return False
+
+    dias_str = str(row.get("dias_semana", "") or "").strip()
+
+    if dias_str:
         dia = DIAS_ES[fecha.weekday()]
         dias = [d.strip().lower() for d in dias_str.split("-")]
 
@@ -153,7 +156,6 @@ def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
             return False
 
     return True
-
 
 def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFrame:
     if "recurso" not in df.columns:
