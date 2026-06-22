@@ -1,7 +1,7 @@
 """
 CMS Turístico de Cantabria
 Recursos y Restaurantes
-Google Login + Apps Script + Google Sheets
+Formularios internos + Google Apps Script + Google Sheets
 """
 
 import streamlit as st
@@ -30,53 +30,12 @@ URLS = {
     "experiencias_restaurantes": f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=experiencias_restaurantes",
 }
 
-USUARIOS_AUTORIZADOS = [
-    "TU_EMAIL@gmail.com",
-    "OTRO_SOCIO@gmail.com",
-]
-
 # ─────────────────────────────────────────────
-# LOGIN
+# GOOGLE APPS SCRIPT
 # ─────────────────────────────────────────────
 
-def require_login():
-    if not st.user.is_logged_in:
-        st.title("Acceso al CMS Cantabria")
-        st.write("Inicia sesión con Google para continuar.")
-        if st.button("Entrar con Google"):
-            st.login("google")
-        st.stop()
-
-    email = st.user.get("email", "")
-
-    if email not in USUARIOS_AUTORIZADOS:
-        st.error("No tiene permisos para acceder a esta aplicación.")
-        if st.button("Cerrar sesión"):
-            st.logout()
-        st.stop()
-
-    with st.sidebar:
-        st.write(f"Usuario: {email}")
-        if st.button("Cerrar sesión"):
-            st.logout()
-
-
-# ─────────────────────────────────────────────
-# GUARDAR INCIDENCIAS
-# ─────────────────────────────────────────────
-
-def save_incidencia(data: dict):
-    payload = {
-        "token": st.secrets["APPS_SCRIPT_TOKEN"],
-        "usuario_nombre": st.user.get("name", ""),
-        "usuario_email": st.user.get("email", ""),
-        "tipo": data["tipo"],
-        "categoria": data["categoria"],
-        "nombre": data["nombre"],
-        "municipio": data.get("municipio", ""),
-        "asunto": data["asunto"],
-        "descripcion": data["descripcion"],
-    }
+def post_to_apps_script(payload: dict):
+    payload["token"] = st.secrets["APPS_SCRIPT_TOKEN"]
 
     response = requests.post(
         st.secrets["APPS_SCRIPT_URL"],
@@ -89,6 +48,38 @@ def save_incidencia(data: dict):
 
     if not result.get("ok"):
         raise RuntimeError(result.get("error", "Error desconocido"))
+
+    return result
+
+
+def save_incidencia(data: dict):
+    payload = {
+        "accion": "incidencia",
+        "usuario_nombre": st.session_state.get("guia", ""),
+        "tipo": data["tipo"],
+        "categoria": data["categoria"],
+        "nombre": data["nombre"],
+        "municipio": data.get("municipio", ""),
+        "asunto": data["asunto"],
+        "descripcion": data["descripcion"],
+    }
+
+    return post_to_apps_script(payload)
+
+
+def save_resena_restaurante(data: dict):
+    payload = {
+        "accion": "nueva_resena_restaurante",
+        "restaurante": data["restaurante"],
+        "fecha": data["fecha"],
+        "guia": st.session_state.get("guia", ""),
+        "num_personas": data["num_personas"],
+        "precio_por_persona": data["precio_por_persona"],
+        "rating": data["rating"],
+        "comentario": data["comentario"],
+    }
+
+    return post_to_apps_script(payload)
 
 
 # ─────────────────────────────────────────────
@@ -273,7 +264,7 @@ def inject_css():
 
 
 # ─────────────────────────────────────────────
-# HTML CARDS
+# BLOQUES HTML
 # ─────────────────────────────────────────────
 
 def build_bloque(bloque_tipo, subtipo, contenido, fuente):
@@ -327,27 +318,45 @@ def build_resena(r_stars, guia, fecha_str, n_p, comentario):
 
 
 # ─────────────────────────────────────────────
+# IDENTIFICACIÓN SIMPLE
+# ─────────────────────────────────────────────
+
+def pedir_nombre_guia():
+    if "guia" not in st.session_state:
+        st.session_state.guia = ""
+
+    st.session_state.guia = st.text_input(
+        "Nombre del guía",
+        value=st.session_state.guia,
+        placeholder="Nombre y apellidos"
+    )
+
+    if not st.session_state.guia.strip():
+        st.info("Indica tu nombre para poder enviar incidencias, propuestas o reseñas.")
+
+
+# ─────────────────────────────────────────────
 # FORMULARIOS
 # ─────────────────────────────────────────────
 
 def formulario_incidencia(tipo, categoria, nombre, municipio=""):
     with st.expander("Reportar dato incorrecto", expanded=False):
         with st.form(f"form_{tipo}_{categoria}_{nombre}"):
-            asunto = st.text_input(
-                "Asunto",
-                value=f"{categoria.capitalize()} - {tipo}: {nombre}"
-            )
 
             descripcion = st.text_area(
-                "Descripción",
-                placeholder="Describe el dato incorrecto, incompleto o desactualizado."
+                "¿Qué dato es incorrecto o falta?",
+                placeholder="Ejemplo: el horario ha cambiado, el precio ya no es correcto o falta indicar el cierre semanal."
             )
 
-            enviar = st.form_submit_button("Enviar incidencia")
+            enviar = st.form_submit_button("Enviar")
 
             if enviar:
+                if not st.session_state.get("guia", "").strip():
+                    st.warning("Indica primero tu nombre.")
+                    return
+
                 if not descripcion.strip():
-                    st.warning("La descripción es obligatoria.")
+                    st.warning("Describe brevemente el problema.")
                     return
 
                 try:
@@ -356,9 +365,10 @@ def formulario_incidencia(tipo, categoria, nombre, municipio=""):
                         "categoria": categoria,
                         "nombre": nombre,
                         "municipio": municipio,
-                        "asunto": asunto,
+                        "asunto": f"Corrección de {tipo}: {nombre}",
                         "descripcion": descripcion,
                     })
+
                     st.success("Incidencia registrada correctamente.")
 
                 except Exception as e:
@@ -368,26 +378,24 @@ def formulario_incidencia(tipo, categoria, nombre, municipio=""):
 def formulario_nuevo_recurso():
     with st.expander("Proponer nuevo recurso turístico", expanded=False):
         with st.form("form_nuevo_recurso"):
+
             nombre = st.text_input("Nombre del recurso")
             municipio = st.text_input("Municipio")
-            tipo_recurso = st.text_input("Tipo de recurso")
-            web = st.text_input("Web oficial")
-            descripcion = st.text_area("Descripción / datos principales")
+            descripcion = st.text_area(
+                "Información básica",
+                placeholder="Indica por qué debe añadirse, web oficial si la conoces, horarios o cualquier dato útil."
+            )
 
-            enviar = st.form_submit_button("Enviar propuesta")
+            enviar = st.form_submit_button("Enviar")
 
             if enviar:
-                if not nombre.strip() or not descripcion.strip():
-                    st.warning("El nombre y la descripción son obligatorios.")
+                if not st.session_state.get("guia", "").strip():
+                    st.warning("Indica primero tu nombre.")
                     return
 
-                texto = (
-                    f"Nombre: {nombre}\n"
-                    f"Municipio: {municipio}\n"
-                    f"Tipo: {tipo_recurso}\n"
-                    f"Web oficial: {web}\n\n"
-                    f"Descripción:\n{descripcion}"
-                )
+                if not nombre.strip():
+                    st.warning("El nombre del recurso es obligatorio.")
+                    return
 
                 try:
                     save_incidencia({
@@ -396,8 +404,9 @@ def formulario_nuevo_recurso():
                         "nombre": nombre,
                         "municipio": municipio,
                         "asunto": f"Nuevo recurso turístico: {nombre}",
-                        "descripcion": texto,
+                        "descripcion": descripcion,
                     })
+
                     st.success("Propuesta registrada correctamente.")
 
                 except Exception as e:
@@ -407,26 +416,24 @@ def formulario_nuevo_recurso():
 def formulario_nuevo_restaurante():
     with st.expander("Proponer nuevo restaurante", expanded=False):
         with st.form("form_nuevo_restaurante"):
+
             nombre = st.text_input("Nombre del restaurante")
             municipio = st.text_input("Municipio")
-            admite_grupos = st.selectbox("Admite grupos", ["", "Sí", "No"])
-            precio = st.text_input("Precio menú grupos")
-            comentario = st.text_area("Primera reseña o comentario")
+            descripcion = st.text_area(
+                "Información básica",
+                placeholder="Indica si admite grupos, precio aproximado, experiencia con grupos o cualquier dato útil."
+            )
 
-            enviar = st.form_submit_button("Enviar propuesta")
+            enviar = st.form_submit_button("Enviar")
 
             if enviar:
+                if not st.session_state.get("guia", "").strip():
+                    st.warning("Indica primero tu nombre.")
+                    return
+
                 if not nombre.strip():
                     st.warning("El nombre del restaurante es obligatorio.")
                     return
-
-                texto = (
-                    f"Nombre: {nombre}\n"
-                    f"Municipio: {municipio}\n"
-                    f"Admite grupos: {admite_grupos}\n"
-                    f"Precio menú grupos: {precio}\n\n"
-                    f"Comentario:\n{comentario}"
-                )
 
                 try:
                     save_incidencia({
@@ -435,16 +442,78 @@ def formulario_nuevo_restaurante():
                         "nombre": nombre,
                         "municipio": municipio,
                         "asunto": f"Nuevo restaurante: {nombre}",
-                        "descripcion": texto,
+                        "descripcion": descripcion,
                     })
+
                     st.success("Propuesta registrada correctamente.")
 
                 except Exception as e:
                     st.error(f"No se pudo registrar la propuesta: {e}")
 
 
+def formulario_nueva_resena_restaurante(nombre, municipio=""):
+    with st.expander("Añadir reseña", expanded=False):
+        with st.form(f"form_resena_{nombre}"):
+
+            fecha_visita = st.date_input(
+                "Fecha",
+                value=date.today(),
+                format="DD/MM/YYYY"
+            )
+
+            n_personas = st.number_input(
+                "Personas",
+                min_value=1,
+                step=1
+            )
+
+            precio = st.text_input(
+                "Precio por persona",
+                placeholder="Ejemplo: 22"
+            )
+
+            rating = st.slider(
+                "Valoración",
+                min_value=1,
+                max_value=5,
+                value=4
+            )
+
+            comentario = st.text_area(
+                "Comentario",
+                placeholder="Breve valoración de la experiencia."
+            )
+
+            enviar = st.form_submit_button("Guardar reseña")
+
+            if enviar:
+                if not st.session_state.get("guia", "").strip():
+                    st.warning("Indica primero tu nombre.")
+                    return
+
+                if not comentario.strip():
+                    st.warning("El comentario es obligatorio.")
+                    return
+
+                try:
+                    save_resena_restaurante({
+                        "restaurante": nombre,
+                        "fecha": fecha_visita.strftime("%d/%m/%Y"),
+                        "num_personas": int(n_personas),
+                        "precio_por_persona": precio,
+                        "rating": int(rating),
+                        "comentario": comentario,
+                    })
+
+                    st.success("Reseña registrada correctamente.")
+                    st.cache_data.clear()
+
+                except Exception as e:
+                    st.error(f"No se pudo registrar la reseña: {e}")
+
+
 # ─────────────────────────────────────────────
-# RECURSOS
+# MÓDULO RECURSOS
 # ─────────────────────────────────────────────
 
 def modulo_recursos(dfs):
@@ -544,7 +613,7 @@ def modulo_recursos(dfs):
 
 
 # ─────────────────────────────────────────────
-# RESTAURANTES
+# MÓDULO RESTAURANTES
 # ─────────────────────────────────────────────
 
 def modulo_restaurantes(dfs):
@@ -667,13 +736,17 @@ def modulo_restaurantes(dfs):
             municipio=municipio
         )
 
+        formulario_nueva_resena_restaurante(
+            nombre=nombre,
+            municipio=municipio
+        )
+
 
 # ─────────────────────────────────────────────
 # APP PRINCIPAL
 # ─────────────────────────────────────────────
 
 def main():
-    require_login()
     inject_css()
 
     st.markdown(html("""
@@ -687,6 +760,8 @@ def main():
         </div>
     </div>
     """), unsafe_allow_html=True)
+
+    pedir_nombre_guia()
 
     try:
         with st.spinner("Cargando datos…"):
