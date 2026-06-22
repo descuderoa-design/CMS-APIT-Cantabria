@@ -1,7 +1,7 @@
 """
 CMS Turístico de Cantabria
-Guías turísticos · Recursos y Restaurantes
-Versión: Formularios internos + Google Apps Script + Google Sheets
+Recursos y Restaurantes
+Google Login + Apps Script + Google Sheets
 """
 
 import streamlit as st
@@ -13,6 +13,7 @@ import requests
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
+
 st.set_page_config(
     page_title="CMS Cantabria",
     page_icon="🏔️",
@@ -29,12 +30,46 @@ URLS = {
     "experiencias_restaurantes": f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=experiencias_restaurantes",
 }
 
+USUARIOS_AUTORIZADOS = [
+    "TU_EMAIL@gmail.com",
+    "OTRO_SOCIO@gmail.com",
+]
+
 # ─────────────────────────────────────────────
-# GUARDAR INCIDENCIA VÍA APPS SCRIPT
+# LOGIN
 # ─────────────────────────────────────────────
+
+def require_login():
+    if not st.user.is_logged_in:
+        st.title("Acceso al CMS Cantabria")
+        st.write("Inicia sesión con Google para continuar.")
+        if st.button("Entrar con Google"):
+            st.login("google")
+        st.stop()
+
+    email = st.user.get("email", "")
+
+    if email not in USUARIOS_AUTORIZADOS:
+        st.error("No tiene permisos para acceder a esta aplicación.")
+        if st.button("Cerrar sesión"):
+            st.logout()
+        st.stop()
+
+    with st.sidebar:
+        st.write(f"Usuario: {email}")
+        if st.button("Cerrar sesión"):
+            st.logout()
+
+
+# ─────────────────────────────────────────────
+# GUARDAR INCIDENCIAS
+# ─────────────────────────────────────────────
+
 def save_incidencia(data: dict):
     payload = {
         "token": st.secrets["APPS_SCRIPT_TOKEN"],
+        "usuario_nombre": st.user.get("name", ""),
+        "usuario_email": st.user.get("email", ""),
         "tipo": data["tipo"],
         "categoria": data["categoria"],
         "nombre": data["nombre"],
@@ -59,18 +94,14 @@ def save_incidencia(data: dict):
 # ─────────────────────────────────────────────
 # CARGA DE DATOS
 # ─────────────────────────────────────────────
+
 @st.cache_data(ttl=600)
 def load_data():
     dfs = {}
 
     for key, url in URLS.items():
         df = pd.read_csv(url)
-        df.columns = (
-            df.columns
-            .str.strip()
-            .str.lower()
-            .str.replace(" ", "_")
-        )
+        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
         dfs[key] = df
 
     return dfs
@@ -79,6 +110,7 @@ def load_data():
 # ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
+
 DIAS_ES = {
     0: "lunes",
     1: "martes",
@@ -138,6 +170,7 @@ def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFra
 # ─────────────────────────────────────────────
 # CSS
 # ─────────────────────────────────────────────
+
 def inject_css():
     st.markdown(html("""
     <style>
@@ -240,8 +273,9 @@ def inject_css():
 
 
 # ─────────────────────────────────────────────
-# BLOQUES HTML
+# HTML CARDS
 # ─────────────────────────────────────────────
+
 def build_bloque(bloque_tipo, subtipo, contenido, fuente):
     fuente_html = (
         f'<br><small style="color:#9ca3af">Fuente: {fuente}</small>'
@@ -258,10 +292,7 @@ def build_bloque(bloque_tipo, subtipo, contenido, fuente):
 
 
 def build_disclaimer(web, ultima_act):
-    web_link = (
-        f' · <a href="{web}" target="_blank">Web oficial</a>'
-        if web else ""
-    )
+    web_link = f' · <a href="{web}" target="_blank">Web oficial</a>' if web else ""
 
     if pd.notna(ultima_act) and ultima_act:
         try:
@@ -298,6 +329,7 @@ def build_resena(r_stars, guia, fecha_str, n_p, comentario):
 # ─────────────────────────────────────────────
 # FORMULARIOS
 # ─────────────────────────────────────────────
+
 def formulario_incidencia(tipo, categoria, nombre, municipio=""):
     with st.expander("Reportar dato incorrecto", expanded=False):
         with st.form(f"form_{tipo}_{categoria}_{nombre}"):
@@ -412,8 +444,9 @@ def formulario_nuevo_restaurante():
 
 
 # ─────────────────────────────────────────────
-# MÓDULO RECURSOS
+# RECURSOS
 # ─────────────────────────────────────────────
+
 def modulo_recursos(dfs):
     recursos_df = dfs["recursos"]
     contenidos_df = dfs["contenidos_recursos"]
@@ -511,8 +544,9 @@ def modulo_recursos(dfs):
 
 
 # ─────────────────────────────────────────────
-# MÓDULO RESTAURANTES
+# RESTAURANTES
 # ─────────────────────────────────────────────
+
 def modulo_restaurantes(dfs):
     rest_df = dfs["restaurantes"]
     exp_df = dfs["experiencias_restaurantes"]
@@ -597,6 +631,7 @@ def modulo_restaurantes(dfs):
                 if pd.notna(res.get("fecha"))
                 else ""
             )
+
             r_stars = "⭐" * int(res.get("rating", 0))
 
             resenas_html += build_resena(
@@ -636,7 +671,9 @@ def modulo_restaurantes(dfs):
 # ─────────────────────────────────────────────
 # APP PRINCIPAL
 # ─────────────────────────────────────────────
+
 def main():
+    require_login()
     inject_css()
 
     st.markdown(html("""
