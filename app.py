@@ -794,26 +794,12 @@ def modulo_restaurantes(dfs):
 def main():
     inject_css()
 
-    col1, col2, col3 = st.columns([1, 2, 1])
+    st.title("GuíaHub")
 
-    with col2:
-        st.image("logo_apit.png", width=110)
-
-   st.image("logo_apit.png", width=110)
-
-st.markdown(
-    "<h1 style='text-align:center;color:#004EA8;'>GuíaHub</h1>",
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    "<p style='text-align:center;color:#6b7280;'>Base de datos guías APIT Cantabria</p>",
-    unsafe_allow_html=True,
-)
     try:
         with st.spinner("Cargando datos…"):
             dfs = load_data()
-
+            
     except Exception:
         st.error(
             "No ha sido posible cargar la información. "
