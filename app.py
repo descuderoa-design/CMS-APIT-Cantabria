@@ -518,14 +518,18 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                 key=f"precio_{form_key}",
             )
 
-            rating = st.slider(
-                "Valoración",
-                min_value=1,
-                max_value=5,
-                value=4,
-                key=f"rating_{form_key}",
-            )
-
+            valoracion = st.selectbox(
+    "Valoración",
+    [
+        "Seleccione...",
+        "⭐",
+        "⭐⭐",
+        "⭐⭐⭐",
+        "⭐⭐⭐⭐",
+        "⭐⭐⭐⭐⭐"
+    ],
+    key=f"rating_{form_key}"
+)
             comentario = st.text_area(
                 "Comentario",
                 placeholder="Breve valoración de la experiencia.",
@@ -542,7 +546,10 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                 if not comentario.strip():
                     st.warning("El comentario es obligatorio.")
                     return
-
+if valoracion == "Seleccione...":
+    st.warning("Seleccione una valoración.")
+    return
+                
                 try:
                     save_resena_restaurante({
                         "restaurante": nombre,
@@ -550,7 +557,7 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                         "guia": guia,
                         "num_personas": int(n_personas),
                         "precio_por_persona": precio,
-                        "rating": int(rating),
+                        "rating": len(valoracion),
                         "comentario": comentario,
                     })
 
