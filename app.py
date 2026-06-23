@@ -519,17 +519,18 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
             )
 
             valoracion = st.selectbox(
-    "Valoración",
-    [
-        "Seleccione...",
-        "⭐",
-        "⭐⭐",
-        "⭐⭐⭐",
-        "⭐⭐⭐⭐",
-        "⭐⭐⭐⭐⭐"
-    ],
-    key=f"rating_{form_key}"
-)
+                "Valoración",
+                [
+                    "Seleccione...",
+                    "⭐",
+                    "⭐⭐",
+                    "⭐⭐⭐",
+                    "⭐⭐⭐⭐",
+                    "⭐⭐⭐⭐⭐",
+                ],
+                key=f"rating_{form_key}",
+            )
+
             comentario = st.text_area(
                 "Comentario",
                 placeholder="Breve valoración de la experiencia.",
@@ -539,24 +540,34 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
             enviar = st.form_submit_button("Guardar reseña")
 
             if enviar:
-    if not guia.strip():
-        st.warning("Indique su nombre.")
-        return
+                if not guia.strip():
+                    st.warning("Indique su nombre.")
+                    return
 
-    if valoracion == "Seleccione...":
-        st.warning("Seleccione una valoración.")
-        return
+                if valoracion == "Seleccione...":
+                    st.warning("Seleccione una valoración.")
+                    return
 
-    try:
-        save_resena_restaurante({
-            ...
-        })
+                if not comentario.strip():
+                    st.warning("El comentario es obligatorio.")
+                    return
 
-        st.success("Gracias. La reseña ha sido registrada.")
+                try:
+                    save_resena_restaurante({
+                        "restaurante": nombre,
+                        "fecha": fecha_visita.strftime("%d/%m/%Y"),
+                        "guia": guia,
+                        "num_personas": int(n_personas),
+                        "precio_por_persona": precio,
+                        "rating": len(valoracion),
+                        "comentario": comentario,
+                    })
 
-    except Exception:
-        mensaje_error_envio()
+                    st.success("Gracias. La reseña ha sido registrada.")
+                    st.cache_data.clear()
 
+                except Exception:
+                    mensaje_error_envio()
 
 # ─────────────────────────────────────────────
 # MÓDULO RECURSOS
