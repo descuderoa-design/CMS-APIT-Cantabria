@@ -14,7 +14,7 @@ import html as html_lib
 
 
 st.set_page_config(
-    page_title="Base de datos para socios",
+    page_title="GuíaHUB",
     page_icon="logo_apit.png",
     layout="centered",
     initial_sidebar_state="collapsed",
