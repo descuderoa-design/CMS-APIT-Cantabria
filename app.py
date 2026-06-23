@@ -793,18 +793,31 @@ def modulo_restaurantes(dfs):
 
 def main():
     inject_css()
+.stImage {
+    text-align: center;
+}
+   st.image("logo_apit.png", width=110)
 
-    st.markdown(html("""
-    <div style="text-align:center;padding:1.2rem 0 0.5rem;">
-        <div style="font-size:2rem;">https://github.com/descuderoa-design/CMS-APIT-Cantabria/blob/main/logo_apit.png</div>
-        <div style="font-weight:700;font-size:1.35rem;color:#1a2e40;">
-            GuíaHub
-        </div>
-        <div style="color:#6b7a8d;font-size:0.82rem;margin-top:0.2rem;">
-            Base de conocimiento
-        </div>
+st.markdown("""
+<div style="text-align:center;margin-top:-10px;">
+    <div style="
+        font-weight:700;
+        font-size:1.7rem;
+        color:#004EA8;
+        margin-bottom:0.2rem;
+    ">
+        GuíaHub
     </div>
-    """), unsafe_allow_html=True)
+
+    <div style="
+        color:#6b7280;
+        font-size:0.95rem;
+        margin-bottom:1rem;
+    ">
+        Base de conocimiento para guías oficiales
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
     try:
         with st.spinner("Cargando datos…"):
