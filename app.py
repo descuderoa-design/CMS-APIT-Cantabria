@@ -794,7 +794,10 @@ def modulo_restaurantes(dfs):
 def main():
     inject_css()
 
-    st.image("logo_apit.png", width=110)
+    col1, col2, col3 = st.columns([1, 2, 1])
+
+    with col2:
+        st.image("logo_apit.png", width=110)
 
     st.markdown("""
     <div style="text-align:center;">
@@ -854,7 +857,7 @@ def main():
     st.markdown(
         '<div style="text-align:center;color:#9ca3af;'
         'font-size:0.72rem;margin-top:2rem;padding-bottom:1rem;">'
-        'CMS Cantabria · Información para uso profesional interno'
+        'GuíaHub · Información para uso profesional interno'
         '</div>',
         unsafe_allow_html=True,
     )
