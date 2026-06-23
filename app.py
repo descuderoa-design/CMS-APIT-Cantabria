@@ -794,28 +794,26 @@ def modulo_restaurantes(dfs):
 def main():
     inject_css()
 
-   st.image("logo_apit.png", width=110)
+    st.image("logo_apit.png", width=110)
 
-st.markdown("""
-<div style="text-align:center;margin-top:-10px;">
-    <div style="
-        font-weight:700;
-        font-size:1.7rem;
-        color:#004EA8;
-        margin-bottom:0.2rem;
-    ">
-        GuíaHub
-    </div>
+    st.markdown("""
+    <div style="text-align:center;">
+        <div style="
+            font-weight:700;
+            font-size:1.7rem;
+            color:#004EA8;
+        ">
+            GuíaHub
+        </div>
 
-    <div style="
-        color:#6b7280;
-        font-size:0.95rem;
-        margin-bottom:1rem;
-    ">
-        Base de conocimiento para guías oficiales
+        <div style="
+            color:#6b7280;
+            font-size:0.95rem;
+        ">
+            Base de conocimiento para guías oficiales
+        </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     try:
         with st.spinner("Cargando datos…"):
