@@ -796,12 +796,12 @@ def main():
 
     st.markdown(html("""
     <div style="text-align:center;padding:1.2rem 0 0.5rem;">
-        <div style="font-size:2rem;">🏔️</div>
+        <div style="font-size:2rem;">logo_apit.png</div>
         <div style="font-weight:700;font-size:1.35rem;color:#1a2e40;">
-            CMS Cantabria
+            GuíaHub
         </div>
         <div style="color:#6b7a8d;font-size:0.82rem;margin-top:0.2rem;">
-            Panel de Guías Turísticos
+            Base de conocimiento
         </div>
     </div>
     """), unsafe_allow_html=True)
