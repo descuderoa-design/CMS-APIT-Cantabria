@@ -689,15 +689,13 @@ def modulo_restaurantes(dfs):
     municipios = ["Seleccione un municipio..."] + sorted(
         rest_df["municipio"].dropna().unique()
     )
+
     muni = st.selectbox("Municipio", municipios, key="rest_muni")
 
     formulario_nuevo_restaurante()
 
     if muni == "Seleccione un municipio...":
-        st.markdown(
-            '<div class="no-results">Seleccione un municipio para consultar los restaurantes disponibles.</div>',
-            unsafe_allow_html=True,
-        )
+        st.info("Seleccione un municipio para consultar los restaurantes disponibles.")
         return
 
     df_fil = rest_df[rest_df["municipio"] == muni].copy()
@@ -709,10 +707,7 @@ def modulo_restaurantes(dfs):
     )
 
     if df_fil.empty:
-        st.markdown(
-            '<div class="no-results">No hay restaurantes registrados para el municipio seleccionado.</div>',
-            unsafe_allow_html=True,
-        )
+        st.info("No hay restaurantes registrados para el municipio seleccionado.")
         return
 
     st.markdown(f"**{len(df_fil)} restaurante(s) encontrado(s)**")
@@ -725,70 +720,52 @@ def modulo_restaurantes(dfs):
         rating = row.get("rating_medio", None)
         n_res = int(row.get("n_resenas", 0)) if pd.notna(row.get("n_resenas")) else 0
 
-        if pd.notna(rating):
-            estrellas = int(round(rating))
-            stars_str = "⭐" * estrellas + "☆" * (5 - estrellas)
-            rating_html = (
-                f'<span>{stars_str}</span> '
-                f'<strong>{rating:.1f}/5</strong> '
-                f'<small style="color:#9ca3af">({n_res} reseña(s))</small>'
-            )
-        else:
-            rating_html = '<small style="color:#9ca3af">Sin reseñas aún</small>'
+        with st.container(border=True):
+            st.markdown(f"**{nombre}**")
+            st.caption(municipio)
 
-        precio_html = (
-            f'<span class="badge badge-green">Menú grupo: {esc(precio)} €/p.</span>'
-            if pd.notna(precio) else ""
-        )
+            etiquetas = []
 
-        grupos_badge = (
-            '<span class="badge badge-green">Grupos</span>'
-            if str(grupos).upper() in ["SÍ", "SI", "YES"]
-            else ""
-        )
+            if str(grupos).upper() in ["SÍ", "SI", "YES"]:
+                etiquetas.append("Admite grupos")
 
-        resenas = exp_df[exp_df["restaurante"] == nombre].copy()
+            if pd.notna(precio):
+                etiquetas.append(f"Menú grupo: {precio} €/p.")
 
-        if "fecha" in resenas.columns:
-            resenas["fecha"] = pd.to_datetime(resenas["fecha"], errors="coerce")
-            resenas = resenas.sort_values("fecha", ascending=False)
+            if etiquetas:
+                st.write(" · ".join(etiquetas))
 
-        resenas_html = ""
+            if pd.notna(rating):
+                estrellas = int(round(rating))
+                stars_str = "⭐" * estrellas + "☆" * (5 - estrellas)
+                st.write(f"{stars_str} {rating:.1f}/5 ({n_res} reseña(s))")
+            else:
+                st.caption("Sin reseñas aún")
 
-        for _, res in resenas.head(3).iterrows():
-            fecha_str = (
-                pd.to_datetime(res["fecha"]).strftime("%d/%m/%Y")
-                if pd.notna(res.get("fecha"))
-                else ""
-            )
+            resenas = exp_df[exp_df["restaurante"] == nombre].copy()
 
-            r_stars = "⭐" * int(res.get("rating", 0))
+            if "fecha" in resenas.columns:
+                resenas["fecha"] = pd.to_datetime(resenas["fecha"], errors="coerce")
+                resenas = resenas.sort_values("fecha", ascending=False)
 
-            resenas_html += build_resena(
-                r_stars,
-                res.get("guia", ""),
-                fecha_str,
-                res.get("num_personas", ""),
-                res.get("comentario", ""),
-            )
+            if resenas.empty:
+                st.caption("Sin reseñas registradas.")
+            else:
+                for _, res in resenas.head(3).iterrows():
+                    fecha_str = (
+                        pd.to_datetime(res["fecha"]).strftime("%d/%m/%Y")
+                        if pd.notna(res.get("fecha"))
+                        else ""
+                    )
 
-        if not resenas_html:
-            resenas_html = '<small style="color:#6b7280">Sin reseñas registradas.</small>'
+                    r_stars = "⭐" * int(res.get("rating", 0))
 
-        st.markdown(f"""
-        <div class="card">
-            <div class="card-title">🍽️ {esc(nombre)}</div>
-            <div>
-                <span class="badge">{esc(municipio)}</span>
-                {grupos_badge}
-                {precio_html}
-            </div>
-            <div style="margin-top:0.5rem;margin-bottom:0.5rem;">
-                {rating_html}
-            </div>
-            {resenas_html}
-        </div>
-        """, unsafe_allow_html=True)
+                    st.markdown("---")
+                    st.caption(
+                        f"{r_stars} · {res.get('guia', '')} · "
+                        f"{fecha_str} · {res.get('num_personas', '')} pax"
+                    )
+                    st.write(res.get("comentario", ""))
 
         formulario_incidencia(
             tipo="restaurante",
@@ -801,7 +778,6 @@ def modulo_restaurantes(dfs):
             nombre=nombre,
             municipio=municipio,
         )
-
 
 # ─────────────────────────────────────────────
 # APP PRINCIPAL
