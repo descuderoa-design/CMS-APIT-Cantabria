@@ -799,25 +799,17 @@ def main():
     with col2:
         st.image("logo_apit.png", width=110)
 
-    st.markdown("""
-    <div style="text-align:center;">
-        <div style="
-            font-weight:700;
-            font-size:1.7rem;
-            color:#004EA8;
-        ">
-            GuíaHub
-        </div>
+   st.image("logo_apit.png", width=110)
 
-        <div style="
-            color:#6b7280;
-            font-size:0.95rem;
-        ">
-            Base de conocimiento para guías oficiales
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align:center;color:#004EA8;'>GuíaHub</h1>",
+    unsafe_allow_html=True,
+)
 
+st.markdown(
+    "<p style='text-align:center;color:#6b7280;'>Base de datos guías APIT Cantabria</p>",
+    unsafe_allow_html=True,
+)
     try:
         with st.spinner("Cargando datos…"):
             dfs = load_data()
