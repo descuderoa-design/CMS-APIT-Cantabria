@@ -1,5 +1,5 @@
 """
-CMS Turístico de Cantabria
+Base de datos para guías
 Recursos y Restaurantes
 Formularios internos + Google Apps Script + Google Sheets
 """
@@ -14,8 +14,8 @@ import html as html_lib
 
 
 st.set_page_config(
-    page_title="CMS Cantabria",
-    page_icon="🏔️",
+    page_title="Base de datos para socios",
+    page_icon="logo_apit.png",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
