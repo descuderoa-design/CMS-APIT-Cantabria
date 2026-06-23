@@ -804,7 +804,7 @@ def main():
     )
 
     st.markdown(
-        "<p style='text-align:center;color:#6b7280;margin-top:0;'>Base de conocimiento para guías oficiales</p>",
+        "<p style='text-align:center;color:#6b7280;margin-top:0;'>Base de conocimiento de guías para guías</p>",
         unsafe_allow_html=True,
     )
 
