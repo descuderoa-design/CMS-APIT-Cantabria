@@ -794,7 +794,19 @@ def modulo_restaurantes(dfs):
 def main():
     inject_css()
 
-    st.title("GuíaHub")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.image("logo_apit.png", width=140)
+
+    st.markdown(
+        "<h1 style='text-align:center;color:#004EA8;margin-bottom:0;'>GuíaHub</h1>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        "<p style='text-align:center;color:#6b7280;margin-top:0;'>Base de conocimiento para guías oficiales</p>",
+        unsafe_allow_html=True,
+    )
 
     try:
         with st.spinner("Cargando datos…"):
