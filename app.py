@@ -196,9 +196,6 @@ def inject_css():
         max-width: 720px;
         padding: 1rem 1rem 4rem;
     }
-    .stImage {
-        text-align: center;
-    }
 
     .section-header {
         background: linear-gradient(135deg, #1a4a6b 0%, #0d7c9e 100%);
