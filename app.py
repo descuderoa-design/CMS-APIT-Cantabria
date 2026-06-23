@@ -796,7 +796,7 @@ def main():
 
     st.markdown(html("""
     <div style="text-align:center;padding:1.2rem 0 0.5rem;">
-        <div style="font-size:2rem;">logo_apit.png</div>
+        <div style="font-size:2rem;">https://github.com/descuderoa-design/CMS-APIT-Cantabria/blob/main/logo_apit.png</div>
         <div style="font-weight:700;font-size:1.35rem;color:#1a2e40;">
             GuíaHub
         </div>
