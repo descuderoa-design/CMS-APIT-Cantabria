@@ -14,7 +14,7 @@ import html as html_lib
 
 
 st.set_page_config(
-    page_title="GuíaHUB",
+    page_title="AppitCant",
     page_icon="logo_apit.png",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -799,7 +799,7 @@ def main():
         st.image("logo_apit.png", width=140)
 
     st.markdown(
-        "<h1 style='text-align:center;color:#004EA8;margin-bottom:0;'>GuíaHub</h1>",
+        "<h1 style='text-align:center;color:#004EA8;margin-bottom:0;'>AppitCant</h1>",
         unsafe_allow_html=True,
     )
 
