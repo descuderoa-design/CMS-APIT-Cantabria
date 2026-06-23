@@ -10,10 +10,8 @@ from datetime import date
 import textwrap
 import requests
 import re
+import html as html_lib
 
-# ─────────────────────────────────────────────
-# CONFIG
-# ─────────────────────────────────────────────
 
 st.set_page_config(
     page_title="CMS Cantabria",
@@ -31,6 +29,38 @@ URLS = {
     "experiencias_restaurantes": f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=experiencias_restaurantes",
 }
 
+
+# ─────────────────────────────────────────────
+# UTILIDADES
+# ─────────────────────────────────────────────
+
+def html(s: str) -> str:
+    return textwrap.dedent(s).strip()
+
+
+def esc(value) -> str:
+    if pd.isna(value):
+        return ""
+    return html_lib.escape(str(value))
+
+
+def safe_key(texto: str) -> str:
+    texto = str(texto).lower().strip()
+    texto = re.sub(r"[^a-z0-9áéíóúñü]+", "_", texto)
+    return texto.strip("_")
+
+
+DIAS_ES = {
+    0: "lunes",
+    1: "martes",
+    2: "miércoles",
+    3: "jueves",
+    4: "viernes",
+    5: "sábado",
+    6: "domingo",
+}
+
+
 # ─────────────────────────────────────────────
 # GOOGLE APPS SCRIPT
 # ─────────────────────────────────────────────
@@ -41,14 +71,14 @@ def post_to_apps_script(payload: dict):
     response = requests.post(
         st.secrets["APPS_SCRIPT_URL"],
         json=payload,
-        timeout=10
+        timeout=10,
     )
 
     response.raise_for_status()
     result = response.json()
 
     if not result.get("ok"):
-        raise RuntimeError(result.get("error", "Error desconocido"))
+        raise RuntimeError("Error de registro")
 
     return result
 
@@ -93,52 +123,36 @@ def load_data():
 
     for key, url in URLS.items():
         df = pd.read_csv(url)
-        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+
+        df.columns = (
+            df.columns
+            .str.strip()
+            .str.lower()
+            .str.replace(" ", "_")
+        )
+
+        for col in [
+            "fecha_inicio",
+            "fecha_fin",
+            "actualizado",
+            "ultima_actualizacion",
+            "fecha",
+        ]:
+            if col in df.columns:
+                df[col] = pd.to_datetime(
+                    df[col],
+                    dayfirst=True,
+                    errors="coerce",
+                )
+
         dfs[key] = df
 
     return dfs
 
 
-# ─────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────
-
-DIAS_ES = {
-    0: "lunes",
-    1: "martes",
-    2: "miércoles",
-    3: "jueves",
-    4: "viernes",
-    5: "sábado",
-    6: "domingo",
-}
-
-
-def html(s: str) -> str:
-    return textwrap.dedent(s).strip()
-
-
-def safe_key(texto: str) -> str:
-    texto = str(texto).lower().strip()
-    texto = re.sub(r"[^a-z0-9áéíóúñü]+", "_", texto)
-    return texto.strip("_")
-
-
 def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
-    inicio_raw = row.get("fecha_inicio")
-    fin_raw = row.get("fecha_fin")
-
-    inicio = pd.to_datetime(
-        inicio_raw,
-        dayfirst=True,
-        errors="coerce"
-    )
-
-    fin = pd.to_datetime(
-        fin_raw,
-        dayfirst=True,
-        errors="coerce"
-    )
+    inicio = row.get("fecha_inicio")
+    fin = row.get("fecha_fin")
 
     if pd.notna(inicio) and fecha < inicio.date():
         return False
@@ -157,6 +171,7 @@ def fila_es_fecha(row: pd.Series, fecha: date) -> bool:
 
     return True
 
+
 def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFrame:
     if "recurso" not in df.columns:
         return pd.DataFrame()
@@ -171,7 +186,7 @@ def filtrar_contenido(df: pd.DataFrame, recurso: str, fecha: date) -> pd.DataFra
 
 
 # ─────────────────────────────────────────────
-# CSS
+# ESTILOS
 # ─────────────────────────────────────────────
 
 def inject_css():
@@ -267,8 +282,8 @@ def inject_css():
 
     .no-results {
         text-align: center;
-        color: #9ca3af;
-        padding: 2rem 1rem;
+        color: #6b7280;
+        padding: 1.5rem 1rem;
         font-size: 0.9rem;
     }
     </style>
@@ -276,26 +291,29 @@ def inject_css():
 
 
 # ─────────────────────────────────────────────
-# BLOQUES HTML
+# BLOQUES VISUALES
 # ─────────────────────────────────────────────
 
 def build_bloque(bloque_tipo, subtipo, contenido, fuente):
     fuente_html = (
-        f'<br><small style="color:#9ca3af">Fuente: {fuente}</small>'
+        f'<br><small style="color:#9ca3af">Fuente: {esc(fuente)}</small>'
         if fuente else ""
     )
 
     return (
         '<div class="bloque">'
-        f'<div class="bloque-label">{bloque_tipo}</div>'
-        f'<div class="bloque-subtipo">{subtipo}</div>'
-        f'<div class="bloque-contenido">{contenido}{fuente_html}</div>'
+        f'<div class="bloque-label">{esc(bloque_tipo)}</div>'
+        f'<div class="bloque-subtipo">{esc(subtipo)}</div>'
+        f'<div class="bloque-contenido">{esc(contenido)}{fuente_html}</div>'
         '</div>'
     )
 
 
 def build_disclaimer(web, ultima_act):
-    web_link = f' · <a href="{web}" target="_blank">Web oficial</a>' if web else ""
+    web_link = ""
+
+    if web and pd.notna(web):
+        web_link = f' · <a href="{esc(web)}" target="_blank">Web oficial</a>'
 
     if pd.notna(ultima_act) and ultima_act:
         try:
@@ -308,8 +326,8 @@ def build_disclaimer(web, ultima_act):
 
     return (
         '<div class="disclaimer">'
-        '<strong>Aviso:</strong> Esta información puede estar desactualizada. '
-        'Contrástala con la fuente oficial antes de usarla.'
+        '<strong>Aviso:</strong> La información puede estar desactualizada. '
+        'Contrástela con la fuente oficial antes de utilizarla.'
         f'{web_link}{act_str}'
         '</div>'
     )
@@ -320,10 +338,10 @@ def build_resena(r_stars, guia, fecha_str, n_p, comentario):
         '<div style="border-top:1px solid #e5e9ef;'
         'padding-top:0.5rem;margin-top:0.5rem;">'
         f'<div style="font-size:0.78rem;color:#6b7a8d;">'
-        f'{r_stars} · {guia} · {fecha_str} · {n_p} pax'
+        f'{esc(r_stars)} · {esc(guia)} · {esc(fecha_str)} · {esc(n_p)} pax'
         '</div>'
         f'<div style="font-size:0.85rem;color:#374151;margin-top:0.2rem;">'
-        f'{comentario}'
+        f'{esc(comentario)}'
         '</div>'
         '</div>'
     )
@@ -332,6 +350,13 @@ def build_resena(r_stars, guia, fecha_str, n_p, comentario):
 # ─────────────────────────────────────────────
 # FORMULARIOS
 # ─────────────────────────────────────────────
+
+def mensaje_error_envio():
+    st.error(
+        "No ha sido posible enviar la información. "
+        "Inténtelo de nuevo más tarde o contacte con APIT Cantabria."
+    )
+
 
 def formulario_incidencia(tipo, categoria, nombre, municipio=""):
     form_key = f"form_incidencia_{safe_key(tipo)}_{safe_key(categoria)}_{safe_key(nombre)}"
@@ -342,24 +367,24 @@ def formulario_incidencia(tipo, categoria, nombre, municipio=""):
             guia = st.text_input(
                 "Nombre del guía",
                 placeholder="Nombre y apellidos",
-                key=f"guia_{form_key}"
+                key=f"guia_{form_key}",
             )
 
             descripcion = st.text_area(
                 "¿Qué dato es incorrecto o falta?",
-                placeholder="Ejemplo: el horario ha cambiado, el precio ya no es correcto o falta indicar el cierre semanal.",
-                key=f"descripcion_{form_key}"
+                placeholder="Indique brevemente qué información debe corregirse o completarse.",
+                key=f"descripcion_{form_key}",
             )
 
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
                 if not guia.strip():
-                    st.warning("Indica tu nombre.")
+                    st.warning("Indique su nombre.")
                     return
 
                 if not descripcion.strip():
-                    st.warning("Describe brevemente el problema.")
+                    st.warning("Describa brevemente el problema.")
                     return
 
                 try:
@@ -373,10 +398,10 @@ def formulario_incidencia(tipo, categoria, nombre, municipio=""):
                         "descripcion": descripcion,
                     })
 
-                    st.success("Incidencia registrada correctamente.")
+                    st.success("Gracias. La información ha sido registrada y será revisada por APIT Cantabria.")
 
-                except Exception as e:
-                    st.error(f"No se pudo registrar la incidencia: {e}")
+                except Exception:
+                    mensaje_error_envio()
 
 
 def formulario_nuevo_recurso():
@@ -389,14 +414,14 @@ def formulario_nuevo_recurso():
 
             descripcion = st.text_area(
                 "Información básica",
-                placeholder="Indica por qué debe añadirse, web oficial si la conoces, horarios o cualquier dato útil."
+                placeholder="Indique web oficial, horarios, datos útiles o motivo por el que debería añadirse."
             )
 
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
                 if not guia.strip():
-                    st.warning("Indica tu nombre.")
+                    st.warning("Indique su nombre.")
                     return
 
                 if not nombre.strip():
@@ -414,10 +439,10 @@ def formulario_nuevo_recurso():
                         "descripcion": descripcion,
                     })
 
-                    st.success("Propuesta registrada correctamente.")
+                    st.success("Gracias. La propuesta ha sido registrada y será revisada por APIT Cantabria.")
 
-                except Exception as e:
-                    st.error(f"No se pudo registrar la propuesta: {e}")
+                except Exception:
+                    mensaje_error_envio()
 
 
 def formulario_nuevo_restaurante():
@@ -430,14 +455,14 @@ def formulario_nuevo_restaurante():
 
             descripcion = st.text_area(
                 "Información básica",
-                placeholder="Indica si admite grupos, precio aproximado, experiencia con grupos o cualquier dato útil."
+                placeholder="Indique si admite grupos, precio aproximado, experiencia con grupos o cualquier dato útil."
             )
 
             enviar = st.form_submit_button("Enviar")
 
             if enviar:
                 if not guia.strip():
-                    st.warning("Indica tu nombre.")
+                    st.warning("Indique su nombre.")
                     return
 
                 if not nombre.strip():
@@ -455,10 +480,10 @@ def formulario_nuevo_restaurante():
                         "descripcion": descripcion,
                     })
 
-                    st.success("Propuesta registrada correctamente.")
+                    st.success("Gracias. La propuesta ha sido registrada y será revisada por APIT Cantabria.")
 
-                except Exception as e:
-                    st.error(f"No se pudo registrar la propuesta: {e}")
+                except Exception:
+                    mensaje_error_envio()
 
 
 def formulario_nueva_resena_restaurante(nombre, municipio=""):
@@ -470,27 +495,27 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
             guia = st.text_input(
                 "Nombre del guía",
                 placeholder="Nombre y apellidos",
-                key=f"guia_{form_key}"
+                key=f"guia_{form_key}",
             )
 
             fecha_visita = st.date_input(
                 "Fecha",
                 value=date.today(),
                 format="DD/MM/YYYY",
-                key=f"fecha_{form_key}"
+                key=f"fecha_{form_key}",
             )
 
             n_personas = st.number_input(
                 "Personas",
                 min_value=1,
                 step=1,
-                key=f"personas_{form_key}"
+                key=f"personas_{form_key}",
             )
 
             precio = st.text_input(
                 "Precio por persona",
                 placeholder="Ejemplo: 22",
-                key=f"precio_{form_key}"
+                key=f"precio_{form_key}",
             )
 
             rating = st.slider(
@@ -498,20 +523,20 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                 min_value=1,
                 max_value=5,
                 value=4,
-                key=f"rating_{form_key}"
+                key=f"rating_{form_key}",
             )
 
             comentario = st.text_area(
                 "Comentario",
                 placeholder="Breve valoración de la experiencia.",
-                key=f"comentario_{form_key}"
+                key=f"comentario_{form_key}",
             )
 
             enviar = st.form_submit_button("Guardar reseña")
 
             if enviar:
                 if not guia.strip():
-                    st.warning("Indica tu nombre.")
+                    st.warning("Indique su nombre.")
                     return
 
                 if not comentario.strip():
@@ -529,11 +554,11 @@ def formulario_nueva_resena_restaurante(nombre, municipio=""):
                         "comentario": comentario,
                     })
 
-                    st.success("Reseña registrada correctamente.")
+                    st.success("Gracias. La reseña ha sido registrada.")
                     st.cache_data.clear()
 
-                except Exception as e:
-                    st.error(f"No se pudo registrar la reseña: {e}")
+                except Exception:
+                    mensaje_error_envio()
 
 
 # ─────────────────────────────────────────────
@@ -560,28 +585,36 @@ def modulo_recursos(dfs):
         )
 
     with col_muni:
-        municipios = ["Todos"] + sorted(recursos_df["municipio"].dropna().unique())
+        municipios = ["Seleccione un municipio..."] + sorted(
+            recursos_df["municipio"].dropna().unique()
+        )
         muni = st.selectbox("Municipio", municipios, key="rec_muni")
+
+    formulario_nuevo_recurso()
+
+    if muni == "Seleccione un municipio...":
+        st.markdown(
+            '<div class="no-results">Seleccione un municipio para consultar los recursos disponibles.</div>',
+            unsafe_allow_html=True,
+        )
+        return
 
     df_fil = recursos_df.copy()
 
     if "activo" in df_fil.columns:
         df_fil = df_fil[df_fil["activo"] == True]
 
-    if muni != "Todos":
-        df_fil = df_fil[df_fil["municipio"] == muni]
+    df_fil = df_fil[df_fil["municipio"] == muni]
 
     if "prioridad" in df_fil.columns:
         df_fil = df_fil.sort_values(["prioridad", "recurso"])
     else:
         df_fil = df_fil.sort_values("recurso")
 
-    formulario_nuevo_recurso()
-
     if df_fil.empty:
         st.markdown(
-            '<div class="no-results">No hay recursos para los filtros seleccionados.</div>',
-            unsafe_allow_html=True
+            '<div class="no-results">No hay recursos registrados para el municipio seleccionado.</div>',
+            unsafe_allow_html=True,
         )
         return
 
@@ -609,22 +642,20 @@ def modulo_recursos(dfs):
                     )
         else:
             bloques_html = (
-                '<small style="color:#9ca3af">'
-                'Sin datos disponibles para la fecha seleccionada.'
+                '<small style="color:#6b7280">'
+                'No hay información registrada para la fecha consultada.'
                 '</small>'
             )
 
-        web_str = str(web) if pd.notna(web) else ""
-
         st.markdown(f"""
         <div class="card">
-            <div class="card-title">🏛️ {nombre}</div>
+            <div class="card-title">🏛️ {esc(nombre)}</div>
             <div>
-                <span class="badge">{municipio}</span>
-                <span class="badge badge-amber">{tipo_rec}</span>
+                <span class="badge">{esc(municipio)}</span>
+                <span class="badge badge-amber">{esc(tipo_rec)}</span>
             </div>
             {bloques_html}
-            {build_disclaimer(web_str, ultima_act)}
+            {build_disclaimer(web, ultima_act)}
         </div>
         """, unsafe_allow_html=True)
 
@@ -632,7 +663,7 @@ def modulo_recursos(dfs):
             tipo="recurso",
             categoria="correccion",
             nombre=nombre,
-            municipio=municipio
+            municipio=municipio,
         )
 
 
@@ -655,26 +686,32 @@ def modulo_restaurantes(dfs):
         rest_df["rating_medio"] = None
         rest_df["n_resenas"] = 0
 
-    municipios = ["Todos"] + sorted(rest_df["municipio"].dropna().unique())
+    municipios = ["Seleccione un municipio..."] + sorted(
+        rest_df["municipio"].dropna().unique()
+    )
     muni = st.selectbox("Municipio", municipios, key="rest_muni")
 
-    df_fil = rest_df.copy()
+    formulario_nuevo_restaurante()
 
-    if muni != "Todos":
-        df_fil = df_fil[df_fil["municipio"] == muni]
+    if muni == "Seleccione un municipio...":
+        st.markdown(
+            '<div class="no-results">Seleccione un municipio para consultar los restaurantes disponibles.</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    df_fil = rest_df[rest_df["municipio"] == muni].copy()
 
     df_fil = df_fil.sort_values(
         "rating_medio",
         ascending=False,
-        na_position="last"
+        na_position="last",
     )
-
-    formulario_nuevo_restaurante()
 
     if df_fil.empty:
         st.markdown(
-            '<div class="no-results">No hay restaurantes para los filtros seleccionados.</div>',
-            unsafe_allow_html=True
+            '<div class="no-results">No hay restaurantes registrados para el municipio seleccionado.</div>',
+            unsafe_allow_html=True,
         )
         return
 
@@ -700,7 +737,7 @@ def modulo_restaurantes(dfs):
             rating_html = '<small style="color:#9ca3af">Sin reseñas aún</small>'
 
         precio_html = (
-            f'<span class="badge badge-green">Menú grupo: {precio} €/p.</span>'
+            f'<span class="badge badge-green">Menú grupo: {esc(precio)} €/p.</span>'
             if pd.notna(precio) else ""
         )
 
@@ -736,13 +773,13 @@ def modulo_restaurantes(dfs):
             )
 
         if not resenas_html:
-            resenas_html = '<small style="color:#9ca3af">Sin reseñas registradas.</small>'
+            resenas_html = '<small style="color:#6b7280">Sin reseñas registradas.</small>'
 
         st.markdown(f"""
         <div class="card">
-            <div class="card-title">🍽️ {nombre}</div>
+            <div class="card-title">🍽️ {esc(nombre)}</div>
             <div>
-                <span class="badge">{municipio}</span>
+                <span class="badge">{esc(municipio)}</span>
                 {grupos_badge}
                 {precio_html}
             </div>
@@ -757,12 +794,12 @@ def modulo_restaurantes(dfs):
             tipo="restaurante",
             categoria="correccion",
             nombre=nombre,
-            municipio=municipio
+            municipio=municipio,
         )
 
         formulario_nueva_resena_restaurante(
             nombre=nombre,
-            municipio=municipio
+            municipio=municipio,
         )
 
 
@@ -789,8 +826,11 @@ def main():
         with st.spinner("Cargando datos…"):
             dfs = load_data()
 
-    except Exception as e:
-        st.error(f"No se pudieron cargar los datos: {e}")
+    except Exception:
+        st.error(
+            "No ha sido posible cargar la información. "
+            "Inténtelo de nuevo más tarde o contacte con APIT Cantabria."
+        )
         return
 
     col_ref, _ = st.columns([1, 3])
@@ -807,23 +847,23 @@ def main():
     with tab_rec:
         st.markdown(
             '<div class="section-header">Recursos Turísticos</div>',
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
         modulo_recursos(dfs)
 
     with tab_rest:
         st.markdown(
             '<div class="section-header">Restaurantes</div>',
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
         modulo_restaurantes(dfs)
 
     st.markdown(
         '<div style="text-align:center;color:#9ca3af;'
         'font-size:0.72rem;margin-top:2rem;padding-bottom:1rem;">'
-        'CMS Cantabria · Datos actualizados desde Google Sheets'
+        'CMS Cantabria · Información para uso profesional interno'
         '</div>',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
